@@ -48,6 +48,8 @@ static const double X1_MOUSE_SPEED_DIVISOR = 2.5;
     double accumulatedMouseDeltaX;
     double accumulatedMouseDeltaY;
     
+    int mouseMode;
+    
     UIResponder* touchHandler;
     
     id<UserInteractionDelegate> interactionDelegate;
@@ -62,12 +64,15 @@ static const double X1_MOUSE_SPEED_DIVISOR = 2.5;
     UIHoverGestureRecognizer *stylusHoverRecognizer;
 #endif
     CGFloat HeightViewLiftedTo;
+    
+    UIKeyModifierFlags comboKeyModifierFlags;
 }
 
 - (void) setupStreamView:(ControllerSupport*)controllerSupport
      interactionDelegate:(id<UserInteractionDelegate>)interactionDelegate
                   config:(StreamConfiguration*)streamConfig
  streamFrameTopLayerView:(UIView* )topLayerView{
+    self->comboKeyModifierFlags = (UIKeyModifierControl|UIKeyModifierAlternate|UIKeyModifierShift);
 
     self->streamFrameTopLayerView = topLayerView;
     self.streamFrameTopLayerView = topLayerView; // this will be used as a read-only pointer for other class
@@ -75,6 +80,8 @@ static const double X1_MOUSE_SPEED_DIVISOR = 2.5;
     self->streamAspectRatio = (float)streamConfig.width / (float)streamConfig.height;
     
     settings = [[[DataManager alloc] init] getSettings];
+    
+    mouseMode = streamConfig.mouseMode;
     
     keysDown = [[NSMutableSet alloc] init];
     keyInputField = [[KeyboardInputField alloc] initWithFrame:CGRectZero];
@@ -751,11 +758,34 @@ static const double X1_MOUSE_SPEED_DIVISOR = 2.5;
     else if(![onScreenControls handleTouchMovedEvent:touches]) [touchHandler touchesMoved:touches withEvent:event];
 }
 
+- (void) handleKeyCombos:(UIPress*) press{
+    if(press.key.modifierFlags != comboKeyModifierFlags){
+        return;
+    }
+    switch (press.key.keyCode) {
+        case UIKeyboardHIDUsageKeyboardQ:
+            [interactionDelegate streamExitRequested];
+            break;
+        case UIKeyboardHIDUsageKeyboardS:
+            [interactionDelegate toggleStatsOverlay];
+            break;
+        case UIKeyboardHIDUsageKeyboardM:
+            [interactionDelegate toggleMouseCapture];
+            break;
+        case UIKeyboardHIDUsageKeyboardC:
+            [interactionDelegate toggleMouseVisible];
+            break;
+        default:
+            break;
+    }
+}
+
 - (void)pressesBegan:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
     BOOL handled = NO;
     
     if (@available(iOS 13.4, tvOS 13.4, *)) {
         for (UIPress* press in presses) {
+            [self handleKeyCombos:press];
             // For now, we'll treated it as handled if we handle at least one of the
             // UIPress events inside the set.
             if ([KeyboardSupport sendKeyEventForPress:press down:YES]) {
@@ -869,7 +899,7 @@ static const double X1_MOUSE_SPEED_DIVISOR = 2.5;
                        regionForRequest:(UIPointerRegionRequest *)request
                           defaultRegion:(UIPointerRegion *)defaultRegion API_AVAILABLE(ios(13.4)) {
     if (@available(iOS 14.0, *)) {
-        if ([GCMouse current] != nil) {
+        if ([GCMouse current] != nil && mouseMode == 0) {
             // We'll handle this with GCMouse. Do nothing here.
             return nil;
         }
@@ -897,8 +927,11 @@ static const double X1_MOUSE_SPEED_DIVISOR = 2.5;
 }
 
 - (UIPointerStyle *)pointerInteraction:(UIPointerInteraction *)interaction styleForRegion:(UIPointerRegion *)region  API_AVAILABLE(ios(13.4)) {
-    // Always hide the mouse cursor over our stream view
-    return [UIPointerStyle hiddenPointerStyle];
+    if(mouseMode != 2){
+        return [UIPointerStyle hiddenPointerStyle];
+    }else{
+        return nil;
+    }
 }
 
 - (void)mouseWheelMovedContinuous:(UIPanGestureRecognizer *)gesture {

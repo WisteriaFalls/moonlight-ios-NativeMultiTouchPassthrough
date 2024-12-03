@@ -82,7 +82,9 @@
                        touchMode:(NSInteger)touchMode
                     statsOverlay:(BOOL)statsOverlay 
                    allowPortrait:(BOOL)allowPortrait
-              resolutionSelected:(NSInteger)resolutionSelected {
+              resolutionSelected:(NSInteger)resolutionSelected
+             externalDisplayMode:(NSInteger)externalDisplayMode
+                       mouseMode:(NSInteger)mouseMode {
     
     [_managedObjectContext performBlockAndWait:^{
         Settings* settingsToSave = [self retrieveSettings];
@@ -117,7 +119,8 @@
         settingsToSave.statsOverlay = statsOverlay;
         settingsToSave.allowPortrait = allowPortrait;
         settingsToSave.resolutionSelected = [NSNumber numberWithInteger:resolutionSelected];
-        
+        settingsToSave.externalDisplayMode = [NSNumber numberWithInteger:externalDisplayMode];
+        settingsToSave.mouseMode = [NSNumber numberWithInteger:mouseMode];
         [self saveData];
     }];
 }

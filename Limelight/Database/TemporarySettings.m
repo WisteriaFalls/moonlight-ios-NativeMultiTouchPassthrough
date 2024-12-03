@@ -100,6 +100,8 @@
     self.pointerVelocityModeDivider = settings.pointerVelocityModeDivider;
     self.allowPortrait = settings.allowPortrait;
     self.resolutionSelected = settings.resolutionSelected;
+    self.externalDisplayMode = settings.externalDisplayMode;
+    self.mouseMode = settings.mouseMode;
 #endif
     self.uniqueId = settings.uniqueId;
     
