@@ -363,25 +363,54 @@ import UIKit
         }
     }
     
-    @objc public func sendKeyDownEventWithDelay(keyboardCmdStrings: [String], delay: TimeInterval = 0.2, index: Int = 0) { // we need a large delay for WAN streaming
+    // @objc public func sendKeyDownEventWithDelay(keyboardCmdStrings: [String], delay: TimeInterval = 0.2, index: Int = 0) { // we need a large delay for WAN streaming
+    //     guard index < keyboardCmdStrings.count else {
+    //         for keyStr in keyboardCmdStrings {
+    //             LiSendKeyboardEvent(CommandManager.keyMappings[keyStr]!,Int8(KEY_ACTION_UP), 0)
+    //         }
+    //         return
+    //     } // 如果已经处理完所有键，释放所有按键
+        
+    //     let keyCode = CommandManager.keyMappings[keyboardCmdStrings[index]]
+    //     guard let keyCode = keyCode else {
+    //         print("No mapping found for \(keyboardCmdStrings[index])")
+    //         sendKeyDownEventWithDelay(keyboardCmdStrings: keyboardCmdStrings, delay: delay, index: index+1) // 跳过当前键，继续下一个
+    //         return
+    //     }
+    //     // 发送当前键的键盘按下事件
+    //     LiSendKeyboardEvent(keyCode,Int8(KEY_ACTION_DOWN), 0)
+    //     // 使用 asyncAfter 在指定异步延迟后发送下一个键的键盘按下事件
+    //     DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+    //         self.sendKeyDownEventWithDelay(keyboardCmdStrings: keyboardCmdStrings, delay: delay, index: index+1) // 跳过当前键，继续下一个
+    //     }
+    // }
+    
+    @objc public func sendKeyDownEventWithDelay(keyboardCmdStrings: [String], delay: TimeInterval = 0.2, index: Int = 0) {
+    // 如果已处理完所有按键，则开始释放按键
         guard index < keyboardCmdStrings.count else {
-            for keyStr in keyboardCmdStrings {
-                LiSendKeyboardEvent(CommandManager.keyMappings[keyStr]!,Int8(KEY_ACTION_UP), 0)
+            // 释放按键
+            for keyStr in keyboardCmdStrings.reversed() { // 从后往前释放按键
+                if let keyCode = CommandManager.keyMappings[keyStr] {
+                    LiSendKeyboardEvent(keyCode, Int8(KEY_ACTION_UP), 0)  // 释放按键
+                }
             }
             return
-        } // 如果已经处理完所有键，释放所有按键
-        
-        let keyCode = CommandManager.keyMappings[keyboardCmdStrings[index]]
-        guard let keyCode = keyCode else {
-            print("No mapping found for \(keyboardCmdStrings[index])")
-            sendKeyDownEventWithDelay(keyboardCmdStrings: keyboardCmdStrings, delay: delay, index: index+1) // 跳过当前键，继续下一个
-            return
         }
-        // 发送当前键的键盘按下事件
-        LiSendKeyboardEvent(keyCode,Int8(KEY_ACTION_DOWN), 0)
-        // 使用 asyncAfter 在指定异步延迟后发送下一个键的键盘按下事件
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-            self.sendKeyDownEventWithDelay(keyboardCmdStrings: keyboardCmdStrings, delay: delay, index: index+1) // 跳过当前键，继续下一个
+
+        // 获取当前按键的映射值
+        if let keyCode = CommandManager.keyMappings[keyboardCmdStrings[index]] {
+            // 发送当前按键的按下事件
+            LiSendKeyboardEvent(keyCode, Int8(KEY_ACTION_DOWN), 0)
+
+            // 延迟后递归处理下一个按键
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                self.sendKeyDownEventWithDelay(keyboardCmdStrings: keyboardCmdStrings, delay: delay, index: index + 1)
+            }
+        } else {
+            print("No mapping found for \(keyboardCmdStrings[index])")
+            // 如果当前按键没有映射，跳过当前按键并继续下一个
+            self.sendKeyDownEventWithDelay(keyboardCmdStrings: keyboardCmdStrings, delay: delay, index: index + 1)
         }
     }
+
 }
